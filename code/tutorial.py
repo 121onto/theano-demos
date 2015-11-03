@@ -25,7 +25,7 @@ def logistic_function():
 ###########################################################################
 
 def logistic_regression(N=500, feats=700, training_steps=10000):
-    # random variables
+    # data
     data = dict(
         x = rng.randn(N, feats),
         y = rng.randint(size=N, low=0, high=2)
