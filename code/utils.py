@@ -1,5 +1,6 @@
 from __future__ import (print_function, division)
 
+import cPickle
 import numpy as np
 import numpy.random as rng
 import pandas as pd
@@ -12,17 +13,17 @@ import theano.tensor as T
 def save_params(params, path):
     with open(path, 'wb') as file:
         for v in params:
-            cPickle.dump(v.get_value(borrow=True), save_file, -1)
+            cPickle.dump(v.get_value(borrow=True), file, -1)
 
 def load_params(params, path):
     with open(path) as file:
         for v in params:
-            v.set_value(cPickle.load(save_file), borrow=True)
+            v.set_value(cPickle.load(file), borrow=True)
 
 ###########################################################################
 ## shared dataset
 
-def shared_dataset(data):
+def shared_dataset(data, borrow=True):
     """
     Function that loads the dataset into shared variables.
 
@@ -34,16 +35,12 @@ def shared_dataset(data):
 
     """
     x, y = data
-    sx = theano.shared(np.asarray(x, dtype=theano.config.floatX))
-    sy = theano.shared(np.asarray(y, dtype=theano.config.floatX))
+    sx = theano.shared(
+        np.asarray(x, dtype=theano.config.floatX),
+        borrow=borrow
+    )
+    sy = theano.shared(
+        np.asarray(y, dtype=theano.config.floatX),
+        borrow=borrow
+    )
     return sx, T.cast(sy, 'int32')
-
-
-def test_shared_dataset():
-    train, valid, test = None, None, None
-    with gzip.open('data/mnist.pkl.gz', 'rb') as f:
-        train, valid, test = cPickle.load(f)
-
-    tn_x, tn_y = shared_dataset(train)
-    v_x , v_y  = shared_dataset(valid)
-    tt_x, tt_y = shared_dataset(test)
