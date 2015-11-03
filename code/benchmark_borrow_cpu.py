@@ -1,3 +1,4 @@
+# Adapted from http://deeplearning.net/software/theano/tutorial/aliasing.html
 from __future__ import (print_function, division)
 
 from theano import function, config, shared, sandbox, tensor, Out
