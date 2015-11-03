@@ -8,12 +8,10 @@ import pandas as pd
 import theano
 import theano.tensor as T
 
-MODEL_PATH = 'output/params.model'
-
 ###########################################################################
 ## local imports
 
-from code.utils import (shared_dataset, load_model, save_model)
+from code.utils import (shared_dataset, load_params, save_params)
 
 ###########################################################################
 ## minibatch SGD psedo code

@@ -9,12 +9,12 @@ import theano.tensor as T
 ###########################################################################
 ## i/o
 
-def save_params(params, path=MODEL_PATH):
+def save_params(params, path):
     with open(path, 'wb') as file:
         for v in params:
             cPickle.dump(v.get_value(borrow=True), save_file, -1)
 
-def load_params(params, path=MODEL_PATH):
+def load_params(params, path):
     with open(path) as file:
         for v in params:
             v.set_value(cPickle.load(save_file), borrow=True)
