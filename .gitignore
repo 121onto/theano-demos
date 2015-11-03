@@ -1,6 +1,8 @@
 # general
-data
-output
+data/*
+!data/README.md
+output/*
+!output/README.md
 
 # python stuff
 __pycache__/
