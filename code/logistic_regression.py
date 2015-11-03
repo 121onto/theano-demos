@@ -275,7 +275,7 @@ def fit_logistic(learning_rate=0.13, n_epochs=1000, dataset='data/mnist.pkl.gz',
     )
 
 
-def predict():
+def predict(dataset='data/mnist.pkl.gz'):
     # load classifier
     x = T.matrix('x')
     y = T.ivector('y')
