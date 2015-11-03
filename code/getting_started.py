@@ -14,7 +14,7 @@ import theano.tensor as T
 from code.utils import (shared_dataset, load_params, save_params)
 
 ###########################################################################
-## minibatch SGD psedo code
+## minibatch SGD pseudo code
 
 def minibatch_sgd(loss, params, learning_rate):
     d_loss_wrt_params = T.grad(loss, params)
@@ -27,7 +27,7 @@ def minibatch_sgd(loss, params, learning_rate):
             return params
 
 ###########################################################################
-## early stopping psedo code
+## early stopping pseudo code
 
 def early_stopping(loss, data, patience=5000, patience_increase=2, improvement_threshold=0.995):
     validation_frequency = min(n_train_batches, patience/2)
