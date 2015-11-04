@@ -13,7 +13,7 @@ import theano.tensor as T
 ###########################################################################
 ## hidden
 
-def initialize_hidden_W_values(scale, n_in, n_out):
+def initialize_hidden_W_values(scale, n_in):
     rtn = np.asarray(
         rng.uniform(
             low=-np.sqrt(scale / (n_in + n_out)),
@@ -25,6 +25,12 @@ def initialize_hidden_W_values(scale, n_in, n_out):
     return rtn
 
 class HiddenLayer(object):
+    """
+    Notes
+    -----
+    Transforming the tanh activation function per [LeCun1998] may generate an
+    improvement in performance.
+    """
     def __init__(self, rng, input, n_in, n_out, W=None, b=None, activation=T.tanh):
         self.input = input
         if W is None:
@@ -49,7 +55,7 @@ class HiddenLayer(object):
         lin_output = T.dot(input, self.W) + self.b
         self.output = (
             lin_output if activation is None
-            else 1.7159 * activation( (2./3) * lin_output) if activation == T.tanh
+            else 1.7159 * activation( (2./3) * lin_output) if activation == T.tanh # transformation
             else activation(lin_output)
         )
         self.params = [self.W, self.b]
