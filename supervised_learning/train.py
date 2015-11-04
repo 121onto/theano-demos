@@ -12,11 +12,15 @@ import theano.tensor as T
 ###########################################################################
 ## local imports
 
-from code.utils import (load_params, save_params,
-                        shared_dataset,
-                        fit_msgd_early_stopping)
+from supervised_learning.utils import (
+    load_params, save_params,
+    shared_dataset,
+    fit_msgd_early_stopping
+)
 
-from code.layers import (HiddenLayer, LogisticRegression, MLP)
+from supervised_learning.layers import (
+    HiddenLayer, LogisticRegression, MLP
+)
 
 ###########################################################################
 ## config
