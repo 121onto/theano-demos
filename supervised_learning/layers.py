@@ -13,7 +13,7 @@ import theano.tensor as T
 ###########################################################################
 ## hidden
 
-def initialize_hidden_W_values(scale, n_in):
+def initialize_hidden_W_values(scale, n_in, n_out):
     rtn = np.asarray(
         rng.uniform(
             low=-np.sqrt(scale / (n_in + n_out)),
