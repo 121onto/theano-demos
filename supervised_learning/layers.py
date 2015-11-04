@@ -29,7 +29,8 @@ class HiddenLayer(object):
     Notes
     -----
     Transforming the tanh activation function per [LeCun1998] may generate an
-    improvement in performance.
+    improvement in performance.  The original code did not achieve a validation
+    error rate on par with the totorial.  Not sure why.
     """
     def __init__(self, rng, input, n_in, n_out, W=None, b=None, activation=T.tanh):
         self.input = input
