@@ -57,7 +57,8 @@ def compute_n_batches(tn, v, tt, batch_size=20):
     n_tt_batches = int(tt.get_value(borrow=True).shape[0] / batch_size)
     return [n_tn_batches, n_v_batches, n_tt_batches]
 
-def compile_models(datasets, inputs, outputs, updates, index, batch_size):
+
+def compile_models(x, y, index, datasets, cost, classifier, updates, batch_size):
     tn_x, tn_y = datasets[0]
     v_x, v_y = datasets[1]
     tt_x, tt_y = datasets[2]
@@ -122,7 +123,8 @@ def fit_logistic(learning_rate=0.13, n_epochs=1000, dataset='data/mnist.pkl.gz',
     ]
 
     # compile theano functions
-    models = compile_models(dataset, inputs, outputs, index, batch_size)
+    models = compile_models(x, y, index, datasets,
+                            cost, classifier, updates, batch_size)
 
     # compute solution
     best_validation_loss, best_iter, epoch, elapsed_time = fit_msgd_early_stopping(
@@ -172,7 +174,8 @@ def fit_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.001,
     ]
 
     # compile theano functions
-    models = compile_models(dataset, inputs, outputs, index, batch_size)
+    models = compile_models(x, y, index, datasets,
+                            cost, classifier, updates, batch_size)
 
     # compute solution
     best_validation_loss, best_iter, epoch, elapsed_time = fit_msgd_early_stopping(
@@ -190,11 +193,42 @@ def fit_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.001,
 ###########################################################################
 ## predict
 
-def predict(dataset='data/mnist.pkl.gz', param_path='output/mnist_logistic_regression.params'):
+def predict_logistic(dataset='data/mnist.pkl.gz',
+                     param_path='output/mnist_logistic_regression.params'):
+
     # load classifier
     x = T.matrix('x')
     y = T.ivector('y')
     classifier = LogisticRegression(input=x, n_in=28*28, n_out=10)
+    load_params(classifier.params, path=param_path)
+
+    predict_model = theano.function(
+        inputs=[classifier.input],
+        outputs=classifier.y_pred
+    )
+
+    datasets = load_data(dataset)
+    tt_x, tt_y = datasets[2]
+    tt_x = tt_x.get_value()
+
+    predicted_values = predict_model(tt_x[:10])
+    print ("Predicted values for the first 10 examples in test set:")
+    print(predicted_values)
+
+
+def predict_mlp(dataset='data/mnist.pkl.gz',
+                     param_path='output/mnist_mlp.params'):
+
+    # load classifier
+    x = T.matrix('x')
+    y = T.ivector('y')
+    classifier = MLP(
+        rng=rng.RandomState(SEED),
+        input=x,
+        n_in=28*28,
+        n_hidden=500,
+        n_out=10
+    )
     load_params(classifier.params, path=param_path)
 
     predict_model = theano.function(
