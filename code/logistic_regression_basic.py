@@ -1,3 +1,4 @@
+# Adapted from http://deeplearning.net/software/theano/tutorial/examples.html#a-real-example-logistic-regression
 from __future__ import (print_function, division)
 
 import timeit

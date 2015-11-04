@@ -1,3 +1,4 @@
+# Adapted from http://deeplearning.net/tutorial/
 from __future__ import (print_function, division)
 
 import gzip
