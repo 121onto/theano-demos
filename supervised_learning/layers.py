@@ -47,7 +47,11 @@ class HiddenLayer(object):
         self.b = b
 
         lin_output = T.dot(input, self.W) + self.b
-        self.output = lin_output if activation is None else activation(lin_output)
+        self.output = (
+            lin_output if activation is None
+            else 1.7159 * activation( (2./3) * lin_output) if activation == T.tanh
+            else activation(lin_output)
+        )
         self.params = [self.W, self.b]
 
 

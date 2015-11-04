@@ -1,19 +1,11 @@
 # Adapted from http://deeplearning.net/software/theano/tutorial/examples.html#a-real-example-logistic-regression
 from __future__ import (print_function, division)
 
-import timeit
-import gzip
-import cPickle
 import numpy as np
 import numpy.random as rng
 import pandas as pd
 import theano
 import theano.tensor as T
-
-###########################################################################
-## local imports
-
-from code.utils import (shared_dataset, load_params, save_params)
 
 ###########################################################################
 ## Logistic function
