@@ -23,7 +23,7 @@ def load_params(params, path):
             v.set_value(cPickle.load(file), borrow=True)
 
 ###########################################################################
-## shared dataset
+## tensors
 
 def shared_dataset(data, borrow=True):
     """
@@ -46,6 +46,25 @@ def shared_dataset(data, borrow=True):
         borrow=borrow
     )
     return sx, T.cast(sy, 'int32')
+
+def initialize_tensor(scale, shape, dtype=theano.config.floatX, rng=rng, dist='uniform'):
+    if dist=='uniform':
+        rtn = np.asarray(
+            rng.uniform(
+                low=-1.0 * scale,
+                high=1.0 * scale,
+                size=shape
+            ),
+        dtype=dtype
+        )
+    elif dist=='zero':
+        rtn = np.zeros(
+            shape,
+            dtype=dtype
+        )
+    else:
+        raise NotImplementedError()
+    return rtn
 
 ###########################################################################
 ## solvers

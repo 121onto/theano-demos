@@ -19,7 +19,7 @@ from supervised_learning.utils import (
 )
 
 from supervised_learning.layers import (
-    HiddenLayer, LogisticRegression, MLP
+    HiddenLayer, LogisticRegression, MLP, LeNet
 )
 
 ###########################################################################
@@ -95,10 +95,12 @@ def compile_models(x, y, index, datasets, cost, classifier, updates, batch_size)
     )
     return [tn_model, v_model, tt_model]
 
+
 ###########################################################################
 ## fit
 
-def fit_logistic(learning_rate=0.13, n_epochs=1000, dataset='data/mnist.pkl.gz', batch_size=600):
+def fit_logistic(image_size=(28, 28), dataset='data/mnist.pkl.gz',
+                 learning_rate=0.13, n_epochs=1000, batch_size=600):
     # load data
     datasets = load_data(dataset)
     tn_x, tn_y = datasets[0]
@@ -115,7 +117,7 @@ def fit_logistic(learning_rate=0.13, n_epochs=1000, dataset='data/mnist.pkl.gz',
     # define symbolic theano functions
     classifier = LogisticRegression(
         input=x,
-        n_in=28*28,
+        n_in=reduce(np.multiply, image_size),
         n_out=10
     )
     cost = classifier.negative_log_likelihood(y)
@@ -142,9 +144,11 @@ def fit_logistic(learning_rate=0.13, n_epochs=1000, dataset='data/mnist.pkl.gz',
     display_results(best_validation_loss, elapsed_time, epoch)
 
 
-def fit_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.001,
-            n_epochs=1000, dataset='data/mnist.pkl.gz',
-            batch_size=20, n_hidden=500):
+def fit_mlp(image_size=(28, 28), dataset='data/mnist.pkl.gz',
+            n_hidden=500,
+            learning_rate=0.01, L1_reg=0.00, L2_reg=0.001,
+            n_epochs=1000, batch_size=20, patience=10000):
+
 
     # load data
     datasets = load_data(dataset)
@@ -162,10 +166,11 @@ def fit_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.001,
     classifier = MLP(
         rng=rng.RandomState(SEED),
         input=x,
-        n_in=28*28,
+        n_in=reduce(np.multiply, image_size),
         n_hidden=n_hidden,
         n_out=10
     )
+
     cost = (
         classifier.negative_log_likelihood(y)
         + L1_reg * classifier.L1
@@ -188,7 +193,60 @@ def fit_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.001,
         models,
         classifier,
         'output/mnist_mlp.params',
-        patience=10000
+        patience=patience
+    )
+
+    display_results(best_validation_loss, elapsed_time, epoch)
+
+
+def fit_lenet(image_size=(28, 28), n_image_channels=1, dataset='data/mnist.pkl.gz',
+              filter_shape=(5, 5), nkerns=(2, 6), pool_size=(2,2), n_hidden=500,
+              learning_rate=0.01, L1_reg=0.00, L2_reg=0.001,
+              n_epochs=1000, batch_size=20, patience=10000):
+
+    # load data
+    datasets = load_data(dataset)
+    tn_x, tn_y = datasets[0]
+    v_x, v_y = datasets[1]
+    tt_x, tt_y = datasets[2]
+    n_batches = compute_n_batches(tn_x, v_x, tt_x, batch_size)
+
+    # define symbolic variables
+    index = T.lscalar()
+    x = T.matrix('x')
+    y = T.ivector('y')
+
+    classifier = LeNet(
+        rng=rng.RandomState(SEED),
+        input=x,
+        batch_size=batch_size,
+        n_image_channels=n_image_channels,
+        image_size=image_size,
+        nkerns=nkerns,
+        filter_shape=filter_shape,
+        pool_size=pool_size,
+        n_hidden=n_hidden
+    )
+
+    cost = classifier.negative_log_likelihood(y)
+    dparams = [T.grad(cost, param) for param in classifier.params]
+    updates = [
+        (p, p - learning_rate * dp)
+        for p, dp in zip(classifier.params, dparams)
+    ]
+
+    # compile theano functions
+    models = compile_models(x, y, index, datasets,
+                            cost, classifier, updates, batch_size)
+
+    # compute solution
+    best_validation_loss, best_iter, epoch, elapsed_time = fit_msgd_early_stopping(
+        datasets,
+        n_batches,
+        models,
+        classifier,
+        'output/mnist_lenet.params',
+        patience=patience
     )
 
     display_results(best_validation_loss, elapsed_time, epoch)
@@ -218,7 +276,6 @@ def predict_logistic(dataset='data/mnist.pkl.gz',
     predicted_values = predict_model(tt_x[:10])
     print ("Predicted values for the first 10 examples in test set:")
     print(predicted_values)
-
 
 def predict_mlp(dataset='data/mnist.pkl.gz',
                      param_path='output/mnist_mlp.params'):
