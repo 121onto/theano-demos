@@ -39,12 +39,12 @@ def fit_msgd_early_stopping(datasets, outpath, n_batches,
                 validation_losses = [v_model(i) for i in xrange(n_v_batches)]
                 this_validation_loss = np.mean(validation_losses)
                 print(
-                    'epoch %i, minibatch %i/%i, validation error %f %%' %
+                    'epoch %i, minibatch %i/%i, validation error %f ' %
                     (
                         epoch,
                         minibatch_index + 1,
                         n_tn_batches,
-                        this_validation_loss * 100.
+                        this_validation_loss
                     )
                 )
 
@@ -68,11 +68,11 @@ def fit_msgd_early_stopping(datasets, outpath, n_batches,
 
 
 ###########################################################################
-## learning classes
+## sdg via mini batches
 
 class MiniBatchSGD(object):
     def __init__(self, index, x, y, batch_size, learning_rate,
-                 datasets, outpath, classifier, cost):
+                 datasets, outpath, learner, cost):
 
         self.x = x
         self.y = y
@@ -82,18 +82,17 @@ class MiniBatchSGD(object):
         self.outpath = outpath
         self.batch_size = batch_size
 
-        self.classifier = classifier
+        self.learner = learner
         self.cost = cost
 
-        dparams = [T.grad(cost, param) for param in classifier.params]
+        dparams = [T.grad(cost, param) for param in learner.params]
         self.updates = [
             (p, p - learning_rate * dp)
-            for p, dp in zip(classifier.params, dparams)
+            for p, dp in zip(learner.params, dparams)
         ]
 
         self.n_batches = self._compute_n_batches()
         self.models = self._compile_models()
-
 
     def _compute_n_batches(self):
         tn, _ = self.datasets[0]
@@ -105,6 +104,55 @@ class MiniBatchSGD(object):
         n_tt_batches = int(tt.get_value(borrow=True).shape[0] / self.batch_size)
         return [n_tn_batches, n_v_batches, n_tt_batches]
 
+
+    def _compile_models():
+        pass
+
+
+    def fit(self, patience=5000, n_epochs=1000,
+            patience_increase=2, improvement_threshold=0.995):
+
+        return fit_msgd_early_stopping(
+            self.datasets,
+            self.outpath,
+            self.n_batches,
+            self.models,
+            self.learner,
+            n_epochs=n_epochs,
+            patience=patience,
+            patience_increase=patience_increase,
+            improvement_threshold=improvement_threshold
+        )
+
+    def predict(self, dataset='test', datasets=None, params=None):
+        if datasets is not None:
+            datasets = datasets
+        else:
+            datasets = self.datasets
+
+        if params is not None:
+            self.learner.load_params(path=params)
+
+        prediction_model = theano.function(
+            inputs=[self.learner.input],
+            outputs=self.learner.y_pred
+        )
+
+        index = 2 if dataset=='test' else 1 if dataset=='valid' else 0
+        x, y = datasets[index]
+        x = x.get_value()
+
+        predicted_values = prediction_model(x)
+        return predicted_values
+
+
+class SupervisedMSGD(MiniBatchSGD):
+    def __init__(self, index, x, y, batch_size, learning_rate,
+                 datasets, outpath, learner, cost):
+
+        super(SupervisedMSGD, self).__init__(
+            index, x, y, batch_size, learning_rate,
+            datasets, outpath, learner, cost)
 
     def _compile_models(self):
         tn_x, tn_y = self.datasets[0]
@@ -122,8 +170,7 @@ class MiniBatchSGD(object):
         )
         v_model = theano.function(
             inputs=[self.index],
-            outputs=self.classifier.errors(self.y),
-            updates=self.updates,
+            outputs=self.learner.errors(self.y),
             givens={
                 self.x: v_x[self.index * self.batch_size: (self.index + 1) * self.batch_size],
                 self.y: v_y[self.index * self.batch_size: (self.index + 1) * self.batch_size]
@@ -131,7 +178,7 @@ class MiniBatchSGD(object):
         )
         tt_model = theano.function(
             inputs=[self.index],
-            outputs=self.classifier.errors(self.y),
+            outputs=self.learner.errors(self.y),
             givens={
                 self.x: tt_x[self.index * self.batch_size: (self.index + 1) * self.batch_size],
                 self.y: tt_y[self.index * self.batch_size: (self.index + 1) * self.batch_size]
@@ -140,39 +187,39 @@ class MiniBatchSGD(object):
         return [tn_model, v_model, tt_model]
 
 
-    def fit(self, patience=5000, n_epochs=1000,
-            patience_increase=2, improvement_threshold=0.995):
+class UnsupervisedMSGD(MiniBatchSGD):
+    def __init__(self, index, x, batch_size, learning_rate,
+                 datasets, outpath, learner, cost):
 
-        return fit_msgd_early_stopping(
-            self.datasets,
-            self.outpath,
-            self.n_batches,
-            self.models,
-            self.classifier,
-            n_epochs=n_epochs,
-            patience=patience,
-            patience_increase=patience_increase,
-            improvement_threshold=improvement_threshold
+        super(UnsupervisedMSGD, self).__init__(
+            index, x, None, batch_size, learning_rate,
+            datasets, outpath, learner, cost)
+
+    def _compile_models(self):
+        tn_x, _ = self.datasets[0]
+        v_x, _ = self.datasets[1]
+        tt_x, _ = self.datasets[2]
+
+        tn_model = theano.function(
+            inputs=[self.index],
+            outputs=self.cost,
+            updates=self.updates,
+            givens={
+                self.x: tn_x[self.index * self.batch_size: (self.index + 1) * self.batch_size]
+            }
         )
-
-
-    def predict(self, dataset='test', datasets=None, params=None):
-        if datasets is not None:
-            datasets = datasets
-        else:
-            datasets = self.datasets
-
-        if params is not None:
-            self.classifier.load_params(path=params)
-
-        prediction_model = theano.function(
-            inputs=[self.classifier.input],
-            outputs=self.classifier.y_pred
+        v_model = theano.function(
+            inputs=[self.index],
+            outputs=self.learner.error,
+            givens={
+                self.x: v_x[self.index * self.batch_size: (self.index + 1) * self.batch_size],
+            }
         )
-
-        index = 2 if dataset=='test' else 1 if dataset=='valid' else 0
-        x, y = datasets[index]
-        x = x.get_value()
-
-        predicted_values = prediction_model(x)
-        return predicted_values
+        tt_model = theano.function(
+            inputs=[self.index],
+            outputs=self.learner.error,
+            givens={
+                self.x: tt_x[self.index * self.batch_size: (self.index + 1) * self.batch_size],
+            }
+        )
+        return [tn_model, v_model, tt_model]

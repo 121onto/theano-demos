@@ -10,7 +10,7 @@ import theano.tensor as T
 
 from utils import load_data, display_results
 from layers import LogisticRegression
-from solvers import MiniBatchSGD
+from solvers import SupervisedMSGD
 
 ###########################################################################
 ## config
@@ -25,20 +25,18 @@ def fit_logistic(image_size=(28, 28),
              learning_rate=0.13, n_epochs=1000, batch_size=600,
              patience=5000, patience_increase=2, improvement_threshold=0.995):
 
-    # build model
     index = T.lscalar()
     x = T.matrix('x')
     y = T.ivector('y')
 
 
-    # define symbolic theano functions
     classifier = LogisticRegression(
         input=x,
         n_in=reduce(np.multiply, image_size),
         n_out=10
     )
     cost = classifier.negative_log_likelihood(y)
-    learner = MiniBatchSGD(
+    learner = SupervisedMSGD(
         index,
         x,
         y,
@@ -56,7 +54,6 @@ def fit_logistic(image_size=(28, 28),
         patience_increase=patience_increase,
         improvement_threshold=improvement_threshold
     )
-
     display_results(best_validation_loss, elapsed_time, epoch)
 
     return learner

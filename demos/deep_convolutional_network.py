@@ -10,7 +10,7 @@ import theano.tensor as T
 
 from utils import load_data, display_results
 from layers import LeNet
-from solvers import MiniBatchSGD
+from solvers import SupervisedMSGD
 
 ###########################################################################
 ## config
@@ -28,7 +28,6 @@ def fit_lenet(image_size=(28, 28), n_image_channels=1,
               patience_increase=2, improvement_threshold=0.995):
 
 
-    # build model
     index = T.lscalar()
     x = T.matrix('x')
     y = T.ivector('y')
@@ -49,7 +48,7 @@ def fit_lenet(image_size=(28, 28), n_image_channels=1,
         + L1_reg * classifier.L1
         + L2_reg * classifier.L2
     )
-    learner = MiniBatchSGD(
+    learner = SupervisedMSGD(
         index,
         x,
         y,

@@ -10,7 +10,7 @@ import theano.tensor as T
 
 from utils import load_data, display_results
 from layers import MLP
-from solvers import MiniBatchSGD
+from solvers import SupervisedMSGD
 
 ###########################################################################
 ## config
@@ -26,13 +26,10 @@ def fit_mlp(image_size=(28, 28),
             n_epochs=1000, batch_size=20, patience=10000,
             patience_increase=2, improvement_threshold=0.995):
 
-    # build model
     index = T.lscalar()
     x = T.matrix('x')
     y = T.ivector('y')
 
-
-    # define symbolic theano functions
     classifier = MLP(
         rng=rng.RandomState(SEED),
         input=x,
@@ -40,14 +37,12 @@ def fit_mlp(image_size=(28, 28),
         n_hidden=n_hidden,
         n_out=10
     )
-
     cost = (
         classifier.negative_log_likelihood(y)
         + L1_reg * classifier.L1
         + L2_reg * classifier.L2
     )
-
-    learner = MiniBatchSGD(
+    learner = SupervisedMSGD(
         index,
         x,
         y,
