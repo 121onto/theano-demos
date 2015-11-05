@@ -1,21 +1,56 @@
 # Adapted from http://deeplearning.net/tutorial/
 from __future__ import (print_function, division)
 
+import cPickle
 import numpy as np
 import numpy.random as rng
 import theano
 import theano.tensor as T
 from theano.tensor.signal import downsample
 
-###########################################################################
-## local imports
 
-from utils import initialize_tensor
+###########################################################################
+## base layer
+
+def initialize_tensor(scale, shape, dtype=theano.config.floatX, rng=rng, dist='uniform'):
+    if dist=='uniform':
+        rtn = np.asarray(
+            rng.uniform(
+                low=-1.0 * scale,
+                high=1.0 * scale,
+                size=shape
+            ),
+        dtype=dtype
+        )
+    elif dist=='zero':
+        rtn = np.zeros(
+            shape,
+            dtype=dtype
+        )
+    else:
+        raise NotImplementedError()
+    return rtn
+
+
+class BaseLayer(object):
+    def __init__(self):
+        pass
+
+    def save_params(self, path):
+        with open(path, 'wb') as file:
+            for v in self.params:
+                cPickle.dump(v.get_value(borrow=True), file, -1)
+
+    def load_params(self, path):
+        with open(path) as file:
+            for v in self.params:
+                v.set_value(cPickle.load(file), borrow=True)
 
 ###########################################################################
 ## hidden
 
-class HiddenLayer(object):
+class HiddenLayer(BaseLayer):
+
     def __init__(self, rng, input, n_in, n_out, W=None, b=None, activation=T.tanh):
         self.input = input
         if W is None:
@@ -51,7 +86,7 @@ class HiddenLayer(object):
 ###########################################################################
 ## Convolution with optional pooling
 
-class ConvolutionLayer(object):
+class ConvolutionLayer(BaseLayer):
     """
     A convolution layer with optional pooling using shared valriables
     """
@@ -111,7 +146,7 @@ class ConvolutionLayer(object):
 ###########################################################################
 ## Max pooling
 
-class MaxPooling(object):
+class MaxPooling(BaseLayer):
     def __init__(self, input, shape, ignore_border=True):
         self.input = input
         self.output = downsample.max_pool_2d(
@@ -123,7 +158,7 @@ class MaxPooling(object):
 ###########################################################################
 ## Logistic regression
 
-class LogisticRegression(object):
+class LogisticRegression(BaseLayer):
     def __init__(self, input, n_in, n_out):
         """
         Parameters
@@ -192,7 +227,7 @@ class LogisticRegression(object):
 ###########################################################################
 ## mlp
 
-class MLP(object):
+class MLP(BaseLayer):
     def __init__(self, rng, input, n_in, n_hidden, n_out):
         self.hidden_layer = HiddenLayer(
             rng=rng,
@@ -220,8 +255,7 @@ class MLP(object):
 ###########################################################################
 ## lenet
 
-
-class LeNet(object):
+class LeNet(BaseLayer):
     def __init__(self, rng, input,
                  batch_size, n_image_channels, image_size,
                  nkerns, filter_shape, pool_size, n_hidden):

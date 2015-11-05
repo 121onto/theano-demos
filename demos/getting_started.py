@@ -1,14 +1,51 @@
 # Adapted from http://deeplearning.net/software/theano/tutorial/examples.html#a-real-example-logistic-regression
 from __future__ import (print_function, division)
 
+import time
 import numpy as np
 import numpy.random as rng
-import pandas as pd
 import theano
 import theano.tensor as T
 
+from theano import function, config, shared, sandbox, tensor, Out
+
 ###########################################################################
-## Logistic function
+## benchmark shared when using CPU
+
+def benchmark_shared_cpu():
+    vlen = 10 * 30 * 700
+    iters = 1000
+
+    rng = np.random.RandomState(22)
+    x = shared(np.asarray(rng.rand(vlen), config.floatX))
+    f1 = function(
+        [],
+        tensor.exp(x)
+    )
+    f2 = function(
+        [],
+        Out(
+            tensor.exp(x),
+            borrow=True
+        )
+    )
+
+
+    t0 = time.time()
+    for i in xrange(iters):
+        r = f1()
+    t1 = time.time()
+    no_borrow = t1 - t0
+    t0 = time.time()
+    for i in xrange(iters):
+        r = f2()
+    t1 = time.time()
+
+    print('Looping', iters, 'times took', no_borrow, 'seconds without borrow', end='')
+    print('and', t1 - t0, 'seconds with borrow.')
+
+###########################################################################
+## examples with the logistic function
 
 def logistic_function():
     x = T.dmatrix('x')
@@ -19,9 +56,6 @@ def logistic_function():
     array([[ 0.5       ,  0.73105858],
            [ 0.26894142,  0.11920292]])
     """
-
-###########################################################################
-## Logistic regression with random data
 
 def logistic_regression_random_data(N=500, feats=700, training_steps=10000):
     # data
@@ -59,3 +93,8 @@ def logistic_regression_random_data(N=500, feats=700, training_steps=10000):
 
     print('Cost at solution:')
     print(err)
+
+
+
+if __name__ == "__main__":
+    benchmark_shared_cpu()
