@@ -12,7 +12,7 @@ import theano.tensor as T
 ###########################################################################
 ## local imports
 
-from supervised_learning.utils import (
+from utils import (
     load_params, save_params,
     shared_dataset,
     fit_msgd_early_stopping
@@ -99,7 +99,8 @@ def compile_models(x, y, index, datasets, cost, classifier, updates, batch_size)
 ###########################################################################
 ## fit
 
-def fit_logistic(image_size=(28, 28), dataset='data/mnist.pkl.gz',
+def fit_logistic(image_size=(28, 28),
+                 dataset='data/mnist.pkl.gz', output='output/mnist_logistic_regression.params'
                  learning_rate=0.13, n_epochs=1000, batch_size=600):
     # load data
     datasets = load_data(dataset)
@@ -138,7 +139,7 @@ def fit_logistic(image_size=(28, 28), dataset='data/mnist.pkl.gz',
         n_batches,
         models,
         classifier,
-        'output/mnist_logistic_regression.params'
+        output
     )
 
     display_results(best_validation_loss, elapsed_time, epoch)
@@ -227,8 +228,12 @@ def fit_lenet(image_size=(28, 28), n_image_channels=1, dataset='data/mnist.pkl.g
         pool_size=pool_size,
         n_hidden=n_hidden
     )
+    cost = (
+        classifier.negative_log_likelihood(y)
+        + L1_reg * classifier.L1
+        + L2_reg * classifier.L2
+    )
 
-    cost = classifier.negative_log_likelihood(y)
     dparams = [T.grad(cost, param) for param in classifier.params]
     updates = [
         (p, p - learning_rate * dp)

@@ -1,12 +1,8 @@
 # Adapted from http://deeplearning.net/tutorial/
 from __future__ import (print_function, division)
 
-import timeit
-import gzip
-import cPickle
 import numpy as np
 import numpy.random as rng
-import pandas as pd
 import theano
 import theano.tensor as T
 from theano.tensor.signal import downsample
@@ -14,7 +10,7 @@ from theano.tensor.signal import downsample
 ###########################################################################
 ## local imports
 
-from supervised_learning.utils import initialize_tensor
+from utils import initialize_tensor
 
 ###########################################################################
 ## hidden
@@ -264,13 +260,16 @@ class LeNet(object):
             n_out=10
         )
 
+        L1 = abs(self.layer0.W).sum() + abs(self.layer1.W).sum()
+        L2 = (self.layer0.W ** 2).sum() + (self.layer1.W ** 2).sum()
+        self.L1 = L1 + self.layer2.L1
+        self.L2 = L2 + self.layer2.L2
         self.negative_log_likelihood = self.layer2.negative_log_likelihood
         self.errors = self.layer2.errors
 
         self.params = self.layer0.params + self.layer1.params + self.layer2.params
         self.input = input
         self.y_pred = self.layer2.y_pred
-
 
     def shape_reduction(self, input_shape, filter_shape, pool_size):
         rtn = [i-f+1 for i, f in zip(input_shape, filter_shape)]
