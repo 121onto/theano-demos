@@ -85,7 +85,7 @@ class HiddenLayer(BaseLayer):
 
 
 ###########################################################################
-## autoencoder
+## autoencoders
 
 class AutoEncoder(BaseLayer):
     def __init__(self, np_rng, input, th_rng=None,
@@ -156,6 +156,81 @@ class AutoEncoder(BaseLayer):
 
     def get_reconstructed_input(self, hidden):
         return T.nnet.sigmoid(T.dot(hidden, self.W_prime) + self.b_prime)
+
+class ContractiveAutoEncoder(BaseLayer):
+    def __init__(self, np_rng, input, th_rng=None,
+                 n_visible=784, n_hidden=500,
+                 batch_size=1,
+                 W=None, b_hid=None, b_vis=None):
+
+        # cache hypter parameters
+        self.batch_size=batch_size
+        self.n_visible = n_visible
+        self.n_hidden = n_hidden
+
+        # initialize rngs
+        if not th_rng:
+            th_rng = RandomStreams(np_rng.randint(2 ** 30))
+        self.th_rng = th_rng
+
+        # initialize parameters
+        if not W:
+            W_scale = 4. * np.sqrt(6. / (n_hidden + n_visible))
+            W_shape = (n_visible, n_hidden)
+            W = theano.shared(
+                value = initialize_tensor(W_scale, W_shape, rng=np_rng),
+                name='W',
+                borrow=True
+            )
+        if not b_vis:
+            b_vis = theano.shared(
+                value = initialize_tensor(0., n_visible, dist='zero'),
+                borrow=True
+            )
+        if not b_hid:
+            b_hid = theano.shared(
+                value = initialize_tensor(0., n_hidden, dist='zero'),
+                name='b',
+                borrow=True
+            )
+
+        self.W = W
+        self.W_prime = self.W.T
+        self.b = b_hid
+        self.b_prime = b_vis
+        self.params = [self.W, self.b, self.b_prime]
+
+        # initialize cost function
+        self.input = input
+        self.hidden_values = self.get_hidden_values(self.input)
+        self.y = self.get_reconstructed_input(self.hidden_values)
+        self.cross_entropy = - T.sum(
+            self.input * T.log(self.y) + (1 - self.input) * T.log(1-self.y),
+            axis=1
+        )
+        jacobian = self.get_jacobian(self.hidden_values, self.W)
+        self.penalty = T.sum(jacobian ** 2) / self.batch_size
+        self.cost = T.mean(self.cross_entropy) * T.mean(penalty)
+
+        # for "prediction"
+        self.output = self.get_hidden_values(self.input)
+        self.y_pred = self.get_reconstructed_input(self.output)
+        self.error = T.sum((self.y_pred - self.input) ** 2)
+
+    def get_hidden_values(self, input):
+        return T.nnet.sigmoid(T.dot(input, self.W) + self.b)
+
+    def get_reconstructed_input(self, hidden):
+        return T.nnet.sigmoid(T.dot(hidden, self.W_prime) + self.b_prime)
+
+    def get_jacobian(self, hidden, W):
+        return T.reshape(
+            hidden * (1-hidden),
+            (self.batch_size, 1, self.n_hidden)
+        ) * T.reshape(
+            W,
+            (1, self.n_visible, self.n_hidden)
+        )
 
 ###########################################################################
 ## stacked autoencoder

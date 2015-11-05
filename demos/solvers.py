@@ -73,7 +73,7 @@ def fit_msgd_early_stopping(datasets, outpath, n_batches,
 
 class MiniBatchSGD(object):
     def __init__(self, index, x, y, batch_size, learning_rate,
-                 datasets, outpath, learner, cost):
+                 datasets, outpath, learner, cost, updates=None):
 
         self.x = x
         self.y = y
@@ -86,11 +86,13 @@ class MiniBatchSGD(object):
         self.learner = learner
         self.cost = cost
 
-        dparams = [T.grad(cost, param) for param in learner.params]
-        self.updates = [
-            (p, p - learning_rate * dp)
-            for p, dp in zip(learner.params, dparams)
-        ]
+        if updates is None:
+            dparams = [T.grad(cost, param) for param in learner.params]
+            updates = [
+                (p, p - learning_rate * dp)
+                for p, dp in zip(learner.params, dparams)
+            ]
+        self.updates = updates
 
         self.n_batches = self._compute_n_batches()
         self.models = self._compile_models()
@@ -104,7 +106,6 @@ class MiniBatchSGD(object):
         n_v_batches = int(v.get_value(borrow=True).shape[0] / self.batch_size)
         n_tt_batches = int(tt.get_value(borrow=True).shape[0] / self.batch_size)
         return [n_tn_batches, n_v_batches, n_tt_batches]
-
 
     def _compile_models():
         pass
