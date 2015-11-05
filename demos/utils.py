@@ -46,8 +46,8 @@ def make_shared(data, borrow=True):
 
 def display_results(best_validation_loss, elapsed_time, epoch):
     print(
-        'Optimization complete with best validation score of %f %%'
-        % (best_validation_loss * 100.)
+        'Optimization complete with best validation score of %f'
+        % (best_validation_loss)
     )
     print(
         'The code run for %d epochs, with %f epochs/sec'

@@ -139,8 +139,8 @@ class AutoEncoder(BaseLayer):
         self.cost = T.mean(self.cross_entropy)
 
         # for "prediction"
-        hidden_values = self.get_hidden_values(self.input)
-        self.y_pred = self.get_reconstructed_input(hidden_values)
+        self.output = self.get_hidden_values(self.input)
+        self.y_pred = self.get_reconstructed_input(self.output)
         self.error = T.sum((self.y_pred - self.input) ** 2)
 
     def corrupt_input(self, input, corruption_level=0.3):
@@ -156,6 +156,64 @@ class AutoEncoder(BaseLayer):
 
     def get_reconstructed_input(self, hidden):
         return T.nnet.sigmoid(T.dot(hidden, self.W_prime) + self.b_prime)
+
+###########################################################################
+## stacked autoencoder
+
+class StackedAutoEncoder(BaseLayer):
+    def __init__(self, x, y, np_rng, th_rng=None,
+                 n_inputs=784,
+                 hidden_layer_sizes=[500,500],
+                 corruption_levels=[0.1,0.1],
+                 n_out=10):
+
+        # cache hypter parameters
+        self.n_inputs = n_inputs
+        self.n_out = n_out
+        self.hidden_layer_sizes = hidden_layer_sizes
+        self.corruption_levels = corruption_levels
+        self.n_layers = len(hidden_layer_sizes)
+
+        # initialize rngs
+        self.np_rng = np_rng
+        if not th_rng:
+            th_rng = RandomStreams(np_rng.randint(2 ** 30))
+        self.th_rng = th_rng
+
+        # build graphs
+        self.input = x
+        self.y = y
+        self.encoder_layers = []
+        self.params = []
+        for i in xrange(self.n_layers):
+            if i == 0:
+                input_size = self.n_inputs
+                layer_input = self.input
+            else:
+                input_size = hidden_layer_sizes[i - 1]
+                layer_input = self.encoder_layers[-1].output
+
+            encoder = AutoEncoder(
+                np_rng=self.np_rng,
+                input=layer_input,
+                th_rng=self.th_rng,
+                n_visible=input_size,
+                n_hidden=self.hidden_layer_sizes[i],
+                corruption_level=self.corruption_levels[i]
+            )
+            self.encoder_layers.append(encoder)
+            self.params.extend(encoder.params)
+
+        self.logistic_layer = LogisticRegression(
+            input=self.encoder_layers[-1].output,
+            n_in=self.hidden_layer_sizes[-1],
+            n_out=n_out
+        )
+        self.params.extend(self.logistic_layer.params)
+
+        # cost and errors
+        self.cost = self.logistic_layer.negative_log_likelihood(self.y)
+        self.errors = self.logistic_layer.errors(self.y)
 
 
 ###########################################################################
@@ -216,6 +274,7 @@ class ConvolutionLayer(BaseLayer):
             else activation(lin_output)
         )
         self.params = [self.W, self.b]
+
 
 
 ###########################################################################

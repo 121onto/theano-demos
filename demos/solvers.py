@@ -61,7 +61,8 @@ def fit_msgd_early_stopping(datasets, outpath, n_batches,
                 done_looping = True
                 break
 
-        classifier.save_params(path=outpath)
+        if outpath is not None:
+            classifier.save_params(path=outpath)
 
     end_time = timeit.default_timer()
     return best_validation_loss, best_iter, epoch, (end_time - start_time)
