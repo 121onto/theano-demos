@@ -48,7 +48,7 @@ def fit_stacked_autoencoder(image_size=(28, 28), n_out=10,
         n_out=n_out
     )
     cost = stacked_encoder.cost(y)
-    '''
+
     # pretrain
     for i, encoder in enumerate(stacked_encoder.encoder_layers):
         print("Pre-training encoder layer %i" % i)
@@ -70,7 +70,7 @@ def fit_stacked_autoencoder(image_size=(28, 28), n_out=10,
         )
         print("resuts for pre-training encoder %i" % i)
         display_results(best_validation_error, elapsed_time, epoch)
-    '''
+
     print("Fitting full model")
     learner = SupervisedMSGD(
         index,
