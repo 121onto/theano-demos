@@ -126,6 +126,7 @@ class AutoEncoder(BaseLayer):
         self.b = b_hid
         self.b_prime = b_vis
         self.params = [self.W, self.b, self.b_prime]
+        self.forward_params = [self.W, self.b]
 
         # initialize cost function
         self.input = input
@@ -156,6 +157,7 @@ class AutoEncoder(BaseLayer):
 
     def get_reconstructed_input(self, hidden):
         return T.nnet.sigmoid(T.dot(hidden, self.W_prime) + self.b_prime)
+
 
 class ContractiveAutoEncoder(BaseLayer):
     def __init__(self, np_rng, input, th_rng=None,
@@ -232,6 +234,7 @@ class ContractiveAutoEncoder(BaseLayer):
             (1, self.n_visible, self.n_hidden)
         )
 
+
 ###########################################################################
 ## stacked autoencoder
 
@@ -257,7 +260,6 @@ class StackedAutoEncoder(BaseLayer):
 
         # build graphs
         self.input = x
-        self.y = y
         self.encoder_layers = []
         self.params = []
         for i in xrange(self.n_layers):
@@ -277,7 +279,7 @@ class StackedAutoEncoder(BaseLayer):
                 corruption_level=self.corruption_levels[i]
             )
             self.encoder_layers.append(encoder)
-            self.params.extend(encoder.params)
+            self.params.extend(encoder.forward_params)
 
         self.logistic_layer = LogisticRegression(
             input=self.encoder_layers[-1].output,
@@ -287,8 +289,8 @@ class StackedAutoEncoder(BaseLayer):
         self.params.extend(self.logistic_layer.params)
 
         # cost and errors
-        self.cost = self.logistic_layer.negative_log_likelihood(self.y)
-        self.errors = self.logistic_layer.errors(self.y)
+        self.cost = self.logistic_layer.negative_log_likelihood
+        self.errors = self.logistic_layer.errors
 
 
 ###########################################################################
